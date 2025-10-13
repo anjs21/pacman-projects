@@ -132,15 +132,44 @@ def depth_first_search(problem):
     print("Is the start a goal?", problem.is_goal_state(problem.get_start_state()))
     print("Start's successors:", problem.get_successors(problem.get_start_state()))
     """
-    "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
-
-
+    initial_state = problem.get_start_state()
+    frontier = util.Stack()
+    initial_state = SearchNode(None, (initial_state, None, 0))
+    frontier.push(initial_state)
+    expanded_nodes = set()
+    while True:
+        if frontier.is_empty():
+            return []   
+        current_node = frontier.pop()
+        expanded_nodes.add(current_node.state)
+        if problem.is_goal_state(current_node.state):
+            return current_node.get_path()
+        for successor in problem.get_successors(current_node.state): 
+            successor = SearchNode(current_node, successor)
+            if successor.state not in expanded_nodes and successor not in frontier.list:
+                frontier.push(successor)
 
 def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    initial_state = problem.get_start_state()
+    frontier = util.Queue()
+    initial_state = SearchNode(None, (initial_state, None, 0))
+    frontier.push(initial_state)
+    expanded_nodes = set()
+    while True:
+        if frontier.is_empty():
+            return []   
+        current_node = frontier.pop()
+        expanded_nodes.add(current_node.state)
+        if problem.is_goal_state(current_node.state):
+            return current_node.get_path()
+        for successor in problem.get_successors(current_node.state): 
+            successor = SearchNode(current_node, successor)
+            if successor.state not in expanded_nodes and successor not in frontier.list:
+                if problem.is_goal_state(successor.state):
+                    return successor.get_path()
+                frontier.push(successor)
 
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
