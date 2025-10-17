@@ -166,9 +166,7 @@ def breadth_first_search(problem):
             return current_node.get_path()
         for successor in problem.get_successors(current_node.state): 
             successor = SearchNode(current_node, successor)
-            if successor.state not in expanded_nodes and successor not in frontier.list:
-                if problem.is_goal_state(successor.state):
-                    return successor.get_path()
+            if successor.state not in expanded_nodes and successor.state not in [node.state for node in frontier.list]:
                 frontier.push(successor)
 
 def uniform_cost_search(problem):
