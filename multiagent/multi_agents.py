@@ -79,6 +79,8 @@ class ReflexAgent(Agent):
         if food_list:
             min_food_distance = min([manhattan_distance(new_pos, food) for food in food_list])
             evaluation_score += 1.0 / (min_food_distance + 1)
+        if action == Directions.STOP:
+            evaluation_score -= 1
         for ghost_state in new_ghost_states:
             ghost_pos = ghost_state.get_position()
             distance_to_ghost = manhattan_distance(new_pos, ghost_pos)
@@ -163,8 +165,46 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluation_function
         """
-        "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        actions = game_state.get_legal_actions(0)
+
+        alpha = float('-inf')
+        beta = float('inf')
+        value = float('-inf')
+        best_action = None
+        for action in actions:
+            successor = game_state.generate_successor(0, action)
+            value = self.min_value(successor, 0, 1, alpha, beta)
+            if value > alpha:
+                alpha = value
+                best_action = action
+        return best_action
+    
+    def max_value(self, state, depth, alpha, beta):
+        if state.is_win() or state.is_lose() or depth == self.depth:
+            return self.evaluation_function(state)
+        v = float('-inf')
+        for action in state.get_legal_actions(0):
+            successor = state.generate_successor(0, action)
+            v = max(v, self.min_value(successor, depth, 1, alpha, beta))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+        return v
+    
+    def min_value(self, state, depth, agent, alpha, beta):
+        if state.is_win() or state.is_lose() or depth == self.depth:
+            return self.evaluation_function(state)
+        v = float('inf')
+        for action in state.get_legal_actions(agent):
+            successor = state.generate_successor(agent, action)
+            if agent == state.get_num_agents() - 1:
+                v = min(v, self.max_value(successor, depth + 1, alpha, beta))
+            else:
+                v = min(v, self.min_value(successor, depth, agent + 1, alpha, beta))
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
