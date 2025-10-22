@@ -74,24 +74,37 @@ class ReflexAgent(Agent):
         new_scared_times = [ghostState.scared_timer for ghostState in new_ghost_states]
         
         "*** YOUR CODE HERE ***"
-        evaluation_score = 0
+        evaluation_score = successor_game_state.get_score()
+        
         food_list = new_food.as_list()
+        
+        # Penalize stopping
+        if action == Directions.STOP:
+            evaluation_score -= 10
+        
+        # Reward for eating a capsule
+        if len(current_game_state.get_capsules()) > len(successor_game_state.get_capsules()):
+            evaluation_score += 100
+        
+        # Reward for being close to food
         if food_list:
             min_food_distance = min([manhattan_distance(new_pos, food) for food in food_list])
-            evaluation_score += 1.0 / (min_food_distance + 1)
-        if action == Directions.STOP:
-            evaluation_score -= 1
+            evaluation_score += 10.0 / (min_food_distance + 1)
+
+        # Handle ghost interactions
         for ghost_state in new_ghost_states:
             ghost_pos = ghost_state.get_position()
             distance_to_ghost = manhattan_distance(new_pos, ghost_pos)
             if ghost_state.scared_timer > 0:
-                evaluation_score += 1.0 / (distance_to_ghost + 1)
+                # Reward for being close to a scared ghost
+                if distance_to_ghost <= ghost_state.scared_timer:
+                    evaluation_score += 20.0 / (distance_to_ghost + 1)
             else:
+                # Penalize being close to a normal ghost
                 if distance_to_ghost <= 1:
-                    evaluation_score -= 100
-                else:
-                    evaluation_score -= 1.0 / (distance_to_ghost + 1)
-        return evaluation_score + successor_game_state.get_score()
+                    return -float('inf') # Extremely bad to be this close
+                evaluation_score -= 10.0 / (distance_to_ghost + 1)
+        return evaluation_score
 
 def score_evaluation_function(current_game_state):
     """
@@ -166,17 +179,19 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluation_function
         """
         actions = game_state.get_legal_actions(0)
-
+        if not actions:
+            return None
+        
         alpha = float('-inf')
         beta = float('inf')
-        value = float('-inf')
         best_action = None
         for action in actions:
             successor = game_state.generate_successor(0, action)
-            value = self.min_value(successor, 0, 1, alpha, beta)
-            if value > alpha:
-                alpha = value
+            current_value = self.min_value(successor, 0, 1, alpha, beta)
+            if current_value > alpha:
+                alpha = current_value
                 best_action = action
+        # print(best_action)
         return best_action
     
     def max_value(self, state, depth, alpha, beta):
@@ -186,7 +201,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         for action in state.get_legal_actions(0):
             successor = state.generate_successor(0, action)
             v = max(v, self.min_value(successor, depth, 1, alpha, beta))
-            if v >= beta:
+            if v > beta:
                 return v
             alpha = max(alpha, v)
         return v
@@ -201,7 +216,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 v = min(v, self.max_value(successor, depth + 1, alpha, beta))
             else:
                 v = min(v, self.min_value(successor, depth, agent + 1, alpha, beta))
-            if v <= alpha:
+            if v < alpha:
                 return v
             beta = min(beta, v)
         return v
