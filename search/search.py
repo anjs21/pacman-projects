@@ -137,16 +137,16 @@ def depth_first_search(problem):
     initial_state = SearchNode(None, (initial_state, None, 0))
     frontier.push(initial_state)
     expanded_nodes = set()
-    while True:
-        if frontier.is_empty():
-            return []   
+    while not frontier.is_empty():
         current_node = frontier.pop()
+        if current_node.state in expanded_nodes:
+            continue
         expanded_nodes.add(current_node.state)
         if problem.is_goal_state(current_node.state):
             return current_node.get_path()
         for successor in problem.get_successors(current_node.state): 
             successor = SearchNode(current_node, successor)
-            if successor.state not in expanded_nodes and successor not in frontier.list:
+            if successor.state not in expanded_nodes:
                 frontier.push(successor)
 
 def breadth_first_search(problem):
@@ -157,16 +157,16 @@ def breadth_first_search(problem):
     initial_state = SearchNode(None, (initial_state, None, 0))
     frontier.push(initial_state)
     expanded_nodes = set()
-    while True:
-        if frontier.is_empty():
-            return []   
+    while not frontier.is_empty():
         current_node = frontier.pop()
+        if current_node.state in expanded_nodes:
+            continue
         expanded_nodes.add(current_node.state)
         if problem.is_goal_state(current_node.state):
             return current_node.get_path()
         for successor in problem.get_successors(current_node.state): 
             successor = SearchNode(current_node, successor)
-            if successor.state not in expanded_nodes and successor.state not in [node.state for node in frontier.list]:
+            if successor.state not in expanded_nodes:
                 frontier.push(successor)
 
 def uniform_cost_search(problem):
