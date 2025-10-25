@@ -169,10 +169,46 @@ def breadth_first_search(problem):
             if successor.state not in expanded_nodes:
                 frontier.push(successor)
 
+
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    "*** YOUR CODE HERE ***"    
+    from util import PriorityQueue
+
+    start = problem.get_start_state()
+    if problem.is_goal_state(start):
+        return []
+
+    frontier = PriorityQueue()          # items are just 'state'
+    best_g = {start: 0}                 # best cost to each state
+    path = {start: []}                  # action path to each state
+    explored = set()
+
+    # push start with priority 0
+    frontier.push(start, 0)
+
+    while not frontier.is_empty():
+        state = frontier.pop()          # get the state with smallest g
+        if state in explored:
+            continue
+        explored.add(state)
+
+        # goal test on POP ensures optimality
+        if problem.is_goal_state(state):
+            return path[state]
+
+        g = best_g[state]
+
+        # expand
+        for succ, action, step_cost in problem.get_successors(state):
+            new_g = g + step_cost
+            # if we found a cheaper path to succ, record and decrease-key
+            if succ not in best_g or new_g < best_g[succ]:
+                best_g[succ] = new_g
+                path[succ] = path[state] + [action]
+                frontier.update(succ, new_g)   # push if absent, lower priority if present
+
+    return []  # no solution
 
 def null_heuristic(state, problem=None):
     """
@@ -181,10 +217,46 @@ def null_heuristic(state, problem=None):
     """
     return 0
 
+
+
+
 def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raise_not_defined()
+    from util import PriorityQueue
+
+    start = problem.get_start_state()
+    print("the start state is",start)
+    if problem.is_goal_state(start):
+        return []
+
+    frontier = PriorityQueue()          # holds states with priority f = g + h
+    best_g = {start: 0}                 # best known g-cost to each state
+    path = {start: []}                  # actions to reach each state
+
+    # push start with f = 0 + h(start)
+    frontier.push(start, heuristic(start, problem))
+
+    while not frontier.is_empty():
+        state = frontier.pop()          # state with smallest f
+
+        # If we popped a state we no longer have the best g for, skip it
+        # (this handles outdated queue entries without needing an explored set)
+        g = best_g[state]
+
+        if problem.is_goal_state(state):
+            return path[state]
+
+        # expand
+        for succ, action, step_cost in problem.get_successors(state):
+            new_g = g + step_cost
+            if succ not in best_g or new_g < best_g[succ]:
+                best_g[succ] = new_g
+                path[succ] = path[state] + [action]
+                f = new_g + heuristic(succ, problem)
+                frontier.update(succ, f)   # decrease-key or push if absent
+
+    return []  # no solution
 
 # Abbreviations
 bfs = breadth_first_search
