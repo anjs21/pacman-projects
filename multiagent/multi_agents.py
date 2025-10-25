@@ -106,6 +106,7 @@ class ReflexAgent(Agent):
                 evaluation_score -= 10.0 / (distance_to_ghost + 1)
         return evaluation_score
 
+
 def score_evaluation_function(current_game_state):
     """
     This default evaluation function just returns the score of the state.
@@ -166,8 +167,55 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raise_not_defined()
+        def minimax(player,game_state,depth):
+            #check terminal states, (win, lose, depth covered for action)
+            if game_state.is_win():
+                return self.evaluation_function(game_state)
+            if game_state.is_lose():
+                return self.evaluation_function(game_state)
+            if depth == self.depth:
+                return self.evaluation_function(game_state)
+            if player==0:
+                #Pacman is playing    
+                maxscore=float('-inf')
+                for action in game_state.get_legal_actions(player):
+                    next_state = game_state.generate_successor(player,action)
+                    score=minimax(1,next_state,depth)
+                    if score>maxscore:
+                        maxscore=score
+                return maxscore    
+            else:
+                #Ghosts are playing     
+                minscore=float('inf')
+                for action in game_state.get_legal_actions(player):
+                    next_state = game_state.generate_successor(player,action)
+                    if player < game_state.get_num_agents()-1:
+                        next_player=player+1
+                        score=minimax(next_player,next_state,depth)
+                    elif player==game_state.get_num_agents()-1:
+                        next_depth=depth+1
+                        next_player=0
+                        score=minimax(next_player,next_state,next_depth)
+                    if score<minscore:
+                        minscore=score
+                return minscore           
+
+        ##Initial state
+        best_score=float("-inf")
+        best_action=None
+        actions = game_state.get_legal_actions(0)
+        for action in actions:
+            pacman=0
+            next_state = game_state.generate_successor(pacman,action)
+            #we use depth 0 and player 1 because it is pacmans turn to move so we start checking what the ghosts will do to decide the best action
+            depth=0
+            score=minimax(1,next_state,depth)
+            if score>best_score:
+                best_score=score
+                best_action=action
+        return best_action
     
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
