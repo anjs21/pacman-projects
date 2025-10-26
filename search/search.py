@@ -133,80 +133,126 @@ def depth_first_search(problem):
     print("Start's successors:", problem.get_successors(problem.get_start_state()))
     """
     initial_state = problem.get_start_state()
+
+    # Early exit if the start state is the goal.
+    if problem.is_goal_state(initial_state):
+        return []
+
+    # The frontier is a LIFO Stack to explore the deepest nodes first.
     frontier = util.Stack()
+
+    # The initial node has no parent, no action, and zero cost.
     initial_state = SearchNode(None, (initial_state, None, 0))
     frontier.push(initial_state)
+
+    # 'expanded_nodes' is a set to keep track of states we have already visited
+    # to avoid cycles and redundant computations in this graph search.
     expanded_nodes = set()
+
     while not frontier.is_empty():
         current_node = frontier.pop()
+
+        # If we have already expanded this state, skip it.
         if current_node.state in expanded_nodes:
             continue
+
+        # Mark the current state as expanded.
         expanded_nodes.add(current_node.state)
+
+        # If the current node is the goal, we have found a solution.
         if problem.is_goal_state(current_node.state):
             return current_node.get_path()
+        
+        # Get successors and add them to the frontier if they haven't been expanded.
         for successor in problem.get_successors(current_node.state): 
             successor = SearchNode(current_node, successor)
             if successor.state not in expanded_nodes:
                 frontier.push(successor)
+    return []  # no solution found
 
 def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
     initial_state = problem.get_start_state()
+
+    # Early exit if the start state is the goal.
+    if problem.is_goal_state(initial_state):
+        return []
+
+    # The frontier is a FIFO Queue to explore level by level.
     frontier = util.Queue()
+
+    # The initial node has no parent, no action, and zero cost.
     initial_state = SearchNode(None, (initial_state, None, 0))
     frontier.push(initial_state)
+
+    # 'expanded_nodes' stores states that have been visited to prevent cycles.
     expanded_nodes = set()
+
     while not frontier.is_empty():
         current_node = frontier.pop()
+
+        # If we have already expanded this state, skip it.
         if current_node.state in expanded_nodes:
             continue
+        # Mark current state as expanded.
         expanded_nodes.add(current_node.state)
+
+        # If the current node is the goal, we have found a solution.
         if problem.is_goal_state(current_node.state):
             return current_node.get_path()
+        
+        # Get successors and add them to the frontier if they haven't been expanded.
         for successor in problem.get_successors(current_node.state): 
             successor = SearchNode(current_node, successor)
             if successor.state not in expanded_nodes:
                 frontier.push(successor)
+    return []  # no solution found
 
 
 def uniform_cost_search(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"    
-    from util import PriorityQueue
 
     start = problem.get_start_state()
+
+    # Early exit if the start state is the goal.
     if problem.is_goal_state(start):
         return []
 
-    frontier = PriorityQueue()          # items are just 'state'
-    best_g = {start: 0}                 # best cost to each state
-    path = {start: []}                  # action path to each state
+    # The frontier is a Priority Queue, ordered by the path cost (g-value).
+    # Nodes with lower path cost are explored first.
+    frontier = util.PriorityQueue()
     explored = set()
 
-    # push start with priority 0
-    frontier.push(start, 0)
+    # Push the start node with a priority equal to its cost (0).
+    initial_state = SearchNode(None, (start, None, 0))
+    frontier.push(initial_state, initial_state.cost)
 
     while not frontier.is_empty():
-        state = frontier.pop()          # get the state with smallest g
-        if state in explored:
+
+        # Pop the node with the lowest path cost from the frontier.
+        current_node = frontier.pop()
+        if current_node.state in explored:
             continue
-        explored.add(state)
+        explored.add(current_node.state)
 
-        # goal test on POP ensures optimality
-        if problem.is_goal_state(state):
-            return path[state]
+        # Goal test is performed when a node is selected for expansion.
+        # This ensures optimality for UCS because we always expand the lowest-cost path first.
+        if problem.is_goal_state(current_node.state):
+            return current_node.get_path()
 
-        g = best_g[state]
-
-        # expand
-        for succ, action, step_cost in problem.get_successors(state):
-            new_g = g + step_cost
-            # if we found a cheaper path to succ, record and decrease-key
-            if succ not in best_g or new_g < best_g[succ]:
-                best_g[succ] = new_g
-                path[succ] = path[state] + [action]
-                frontier.update(succ, new_g)   # push if absent, lower priority if present
+        # Expand the current node and add its successors to the frontier.
+        for successor in problem.get_successors(current_node.state):
+            successor = SearchNode(current_node, successor)
+            if successor.state not in explored:
+                # Use update to add the node to the frontier or update its priority
+                # if a shorter path to it is found.
+                # update(priority, item) updates the priority of item if the new
+                # priority is lower than the current one. If the item is not in the queue,
+                # it is added with the given priority. 
+                # (so, we don't need to check if it's already in the frontier)
+                frontier.update(successor, successor.cost)
 
     return []  # no solution
 
@@ -217,44 +263,48 @@ def null_heuristic(state, problem=None):
     """
     return 0
 
-
-
-
 def a_star_search(problem, heuristic=null_heuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    from util import PriorityQueue
 
     start = problem.get_start_state()
-    print("the start state is",start)
+    # Early exit if the start state is the goal.
     if problem.is_goal_state(start):
         return []
 
-    frontier = PriorityQueue()          # holds states with priority f = g + h
-    best_g = {start: 0}                 # best known g-cost to each state
-    path = {start: []}                  # actions to reach each state
+    # The frontier is a Priority Queue ordered by f(n) = g(n) + h(n),
+    # where g(n) is the path cost and h(n) is the heuristic value.
+    frontier = util.PriorityQueue()
+    explored = set()
 
-    # push start with f = 0 + h(start)
-    frontier.push(start, heuristic(start, problem))
+    # Push the start node with priority f(start) = g(start) + h(start).
+    # g(start) is 0.
+    initial_state = SearchNode(None, (start, None, 0))
+    frontier.push(initial_state, initial_state.cost + heuristic(initial_state.state, problem))
 
     while not frontier.is_empty():
-        state = frontier.pop()          # state with smallest f
+        # Pop the node with the lowest f-value from the frontier.
+        current_node = frontier.pop()
+        if current_node.state in explored:
+            continue
+        explored.add(current_node.state)
 
-        # If we popped a state we no longer have the best g for, skip it
-        # (this handles outdated queue entries without needing an explored set)
-        g = best_g[state]
+        # Goal test is performed when a node is selected for expansion.
+        # If the heuristic is consistent, this guarantees an optimal solution.
+        if problem.is_goal_state(current_node.state):
+            return current_node.get_path()
 
-        if problem.is_goal_state(state):
-            return path[state]
+        # Expand the current node and add its successors to the frontier.
+        for successor in problem.get_successors(current_node.state):
+            successor = SearchNode(current_node, successor)
+            if successor.state not in explored:
+                # The priority for the successor is its f-value: g(successor) + h(successor).
+                # g(successor) is successor.cost.
+                priority = successor.cost + heuristic(successor.state, problem)
 
-        # expand
-        for succ, action, step_cost in problem.get_successors(state):
-            new_g = g + step_cost
-            if succ not in best_g or new_g < best_g[succ]:
-                best_g[succ] = new_g
-                path[succ] = path[state] + [action]
-                f = new_g + heuristic(succ, problem)
-                frontier.update(succ, f)   # decrease-key or push if absent
+                # Use update to add the node or update its priority if a better path is found.
+                # If not in the frontier, it is added with the given priority.
+                frontier.update(successor, priority)
 
     return []  # no solution
 
